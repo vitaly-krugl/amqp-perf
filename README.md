@@ -13,7 +13,10 @@ Usage:
 	pika_perf.py COMMAND --help
 
 Supported COMMANDs:
-	publish
+	publish - publish message using one of several pika connection classes
+
+Options:
+  -h, --help  show this help message and exit
 ```
 
 ```
@@ -23,12 +26,15 @@ Usage:
 	pika_perf.py publish --help
 	pika_perf.py --help
 
+Publishes the given number of messages of the
+given size to the given exchange using the specified
+pika connection class
+
 Options:
   -h, --help          show this help message and exit
-  --impl=IMPL         Selection of connection class [REQUIRED; must be one of:
-                      BlockingConnection, SynchronousConnection,
+  --impl=IMPL         Selection of pika connection class [REQUIRED; must be
+                      one of: BlockingConnection, SynchronousConnection,
                       SelectConnection]
   --exg=EXCHANGE      Destination exchange [REQUIRED]
   --msgs=NUMMESSAGES  Number of messages to send [default: 1000]
-  --size=MESSAGESIZE  Size of each message in bytes [default: 1024]
-```
+  --size=MESSAGESIZE  Size of each message in bytes [default: 1024]```
