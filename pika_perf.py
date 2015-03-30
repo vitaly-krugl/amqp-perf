@@ -26,7 +26,7 @@ def main():
     "\t%prog COMMAND --help\n"
     "\n"
     "Supported COMMANDs:\n"
-    "\tpublish - publish message using one of several pika connection classes")
+    "\tpublish - publish messages using one of several pika connection classes")
 
   topParser = OptionParser(topHelpString)
  
