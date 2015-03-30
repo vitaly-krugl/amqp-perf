@@ -19,29 +19,45 @@ def main():
     format='%(asctime)-15s %(name)s(%(process)s) - %(levelname)s - %(message)s',
     disable_existing_loggers=False)
 
+  topHelpString = (
+    "\n"
+    "\t%prog COMMAND OPTIONS\n"
+    "\t%prog --help\n"
+    "\t%prog COMMAND --help\n"
+    "\n"
+    "Supported COMMANDs:\n"
+    "\tpublish - publish message using one of several pika connection classes")
 
-  helpString = (
-    "%prog COMMAND OPTIONS\n"
-    "Commands:\n"
-    "    publish")
-
-  parser = OptionParser(helpString)
-
+  topParser = OptionParser(topHelpString)
+ 
   if len(sys.argv) < 2:
-    parser.error("Missing COMMAND")
+    topParser.error("Missing COMMAND")
 
   command = sys.argv[1]
   
   if command == "publish":
+    helpString = (
+      "\n"
+      "\t%prog publish OPTIONS\n"
+      "\t%prog publish --help\n"
+      "\t%prog --help\n"
+      "\n"
+      "Publishes the given number of messages of the\n"
+      "given size to the given exchange using the specified\n"
+      "pika connection class")  
+    parser = OptionParser(helpString)
+
+    implChoices = ["BlockingConnection",
+                   "SynchronousConnection",
+                   "SelectConnection"]
     parser.add_option(
         "--impl",
         action="store",
         type="choice",
         dest="impl",
-        choices=["BlockingConnection",
-                 "SynchronousConnection",
-                 "SelectConnection"],
-        help="Selection of connection class [REQUIRED]")
+        choices=implChoices,
+        help=("Selection of pika connection class "
+              "[REQUIRED; must be one of: %s]" % ", ".join(implChoices)))
 
     parser.add_option(
         "--exg",
@@ -91,7 +107,12 @@ def main():
                            numMessages=options.numMessages,
                            messageSize=options.messageSize)
   else:
-    parser.error("Unknown command=%s" % command)
+    try:
+      topParser.parse_args()
+    except:
+      raise
+    else:
+      topParser.error("Unknown command=%s" % command)
 
 
 def getPikaConnectionParameters():
