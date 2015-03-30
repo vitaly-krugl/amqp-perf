@@ -3,8 +3,8 @@ Performance test for pika
 
 1. Create an exchange and bind a queue to it. If creating a topic or direct exchange, note that the test publishes to the routing_key="test", so bind with that routing key. The test accepts the exchange name as a command-line option.
 2. Invoke pika_perf.py with the options described when you run `python pika_perf.py --help`. Here is an example command:
-** `python pika_perf.py publish --impl SelectConnection --exg test --size=1024 --msgs=10000`
-** `time python pika_perf.py publish --impl SelectConnection --exg test --size=1024 --msgs=10000`
+2.* `python pika_perf.py publish --impl SelectConnection --exg test --size=1024 --msgs=10000`
+2.* `time python pika_perf.py publish --impl SelectConnection --exg test --size=1024 --msgs=10000`
 ```
 $ python pika_perf.py --help
 Usage: 
