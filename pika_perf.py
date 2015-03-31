@@ -82,6 +82,13 @@ def main():
         default=1024,
         help="Size of each message in bytes [default: %default]")
 
+    parser.add_option(
+        "--delivery-confirmation",
+        action="store_true",
+        dest="deliveryConfirmation",
+        default=False,
+        help="Enable delivery confirmation mode [defaults to OFF]")
+
     options, positionalArgs = parser.parse_args(sys.argv[2:])
 
     if positionalArgs:
@@ -98,14 +105,16 @@ def main():
       runBlockingPublishTest(implClassName=options.impl,
                              exchange=options.exchange,
                              numMessages=options.numMessages,
-                             messageSize=options.messageSize)
+                             messageSize=options.messageSize,
+                             deliveryConfirmation=options.deliveryConfirmation)
     else:
       assert options.impl == "SelectConnection", options.impl
       
       runSelectPublishTest(implClassName=options.impl,
                            exchange=options.exchange,
                            numMessages=options.numMessages,
-                           messageSize=options.messageSize)
+                           messageSize=options.messageSize,
+                           deliveryConfirmation=options.deliveryConfirmation)
   else:
     try:
       topParser.parse_args()
@@ -134,10 +143,11 @@ def getPikaConnectionParameters():
 def runBlockingPublishTest(implClassName,
                            exchange,
                            numMessages,
-                           messageSize):
+                           messageSize,
+                           deliveryConfirmation):
   g_log.info("runBlockingPublishTest: impl=%s; exchange=%s; numMessages=%d; "
-             "messageSize=%s",
-             implClassName, exchange, numMessages, messageSize)
+             "messageSize=%s; deliveryConfirmation=%s", implClassName, exchange,
+             numMessages, messageSize, deliveryConfirmation)
 
   connectionClass = getattr(pika, implClassName)
 
@@ -148,6 +158,10 @@ def runBlockingPublishTest(implClassName,
 
   channel = connection.channel()
   g_log.info("%s: opened channel", implClassName)
+
+  if deliveryConfirmation:
+    channel.confirm_delivery()
+    g_log.info("%s: enabled message delivery confirmation", implClassName)
   
   for i in xrange(numMessages):
     channel.basic_publish(exchange=exchange, routing_key=ROUTING_KEY,
@@ -165,14 +179,23 @@ def runBlockingPublishTest(implClassName,
 def runSelectPublishTest(implClassName,
                          exchange,
                          numMessages,
-                         messageSize):
+                         messageSize,
+                         deliveryConfirmation):
   g_log.info("runSelectPublishTest: impl=%s; exchange=%s; numMessages=%d; "
-             "messageSize=%s",
-             implClassName, exchange, numMessages, messageSize)
+             "messageSize=%s; deliveryConfirmation=%s", implClassName, exchange,
+             numMessages, messageSize, deliveryConfirmation)
 
   message = "a" * messageSize
 
+  def onDeliveryConfirmation(*args):
+    # Got Basic.Ack or Basic.Nack
+    pass
+
   def onChannelOpen(channel):
+    if deliveryConfirmation:
+      channel.confirm_delivery(callback=onDeliveryConfirmation)
+      g_log.info("%s: enabled message delivery confirmation", implClassName)
+
     g_log.info("Select publishing...")
     for i in xrange(numMessages):
       channel.basic_publish(exchange=exchange, routing_key=ROUTING_KEY,
