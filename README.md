@@ -15,7 +15,7 @@ user	0m0.897s
 sys	0m0.455s
 ```
 
-# --help examples
+# General help
 ```
 $ python pika_perf.py --help
 Usage: 
@@ -30,6 +30,7 @@ Options:
   -h, --help  show this help message and exit
 ```
 
+# Message Publish test help
 ```
 $ python pika_perf.py publish --help
 Usage: 
@@ -42,10 +43,13 @@ given size to the given exchange using the specified
 pika connection class
 
 Options:
-  -h, --help          show this help message and exit
-  --impl=IMPL         Selection of pika connection class [REQUIRED; must be
-                      one of: BlockingConnection, SynchronousConnection,
-                      SelectConnection]
-  --exg=EXCHANGE      Destination exchange [REQUIRED]
-  --msgs=NUMMESSAGES  Number of messages to send [default: 1000]
-  --size=MESSAGESIZE  Size of each message in bytes [default: 1024]```
+  -h, --help            show this help message and exit
+  --impl=IMPL           Selection of pika connection class [REQUIRED; must be
+                        one of: BlockingConnection, SynchronousConnection,
+                        SelectConnection]
+  --exg=EXCHANGE        Destination exchange [REQUIRED]
+  --msgs=NUMMESSAGES    Number of messages to send [default: 1000]
+  --size=MESSAGESIZE    Size of each message in bytes [default: 1024]
+  --delivery-confirmation
+                        Enable delivery confirmation mode [defaults to OFF]
+```
