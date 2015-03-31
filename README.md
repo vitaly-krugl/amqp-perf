@@ -6,13 +6,15 @@ Performance test for pika
 
 Here is an example command:
 
-	`time python pika_perf.py publish --impl SelectConnection --exg test --size=1024 --msgs=10000`
+```
+	time python pika_perf.py publish --impl SelectConnection --exg test --size=1024 --msgs=10000
+```
 
 ... and the corresponding example output from the `time` utility:
 ```
 real	0m1.456s
 user	0m0.897s
-sys	0m0.455s
+sys		0m0.455s
 ```
 
 # General help
