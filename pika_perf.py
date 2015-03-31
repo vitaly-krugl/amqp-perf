@@ -87,7 +87,7 @@ def main():
         action="store_true",
         dest="deliveryConfirmation",
         default=False,
-        help="Enable delivery confirmation mode [defaults to OFF]")
+        help="Publish in delivery confirmation mode [defaults to OFF]")
 
     options, positionalArgs = parser.parse_args(sys.argv[2:])
 
