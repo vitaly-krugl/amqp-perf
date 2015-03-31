@@ -53,5 +53,6 @@ Options:
   --msgs=NUMMESSAGES    Number of messages to send [default: 1000]
   --size=MESSAGESIZE    Size of each message in bytes [default: 1024]
   --delivery-confirmation
-                        Enable delivery confirmation mode [defaults to OFF]
+                        Publish in delivery confirmation mode [defaults to
+                        OFF]
 ```
