@@ -185,6 +185,7 @@ def runBlockingAMQPPublishTest(implClassName,
     g_log.info("%s: closing connection", implClassName)
 
 
+  g_log.info("%s: DONE", implClassName)
 
 
 def runBlockingChannelPublishTest(implClassName,
@@ -206,8 +207,6 @@ def runBlockingChannelPublishTest(implClassName,
     with conn.channel() as channel:
       g_log.info("%s: opened channel", implClassName)
 
-      g_log.info("%s: wrapped channel", implClassName)
-
       if deliveryConfirmation:
         channel.enable_publisher_confirms()
         g_log.info("%s: enabled message delivery confirmation", implClassName)
@@ -219,10 +218,10 @@ def runBlockingChannelPublishTest(implClassName,
       for i in xrange(numMessages):
         message = rabbitpy.Message(channel, payload)
         res = message.publish(exchange=exchange, routing_key=ROUTING_KEY)
-##        if deliveryConfirmation:
-##          assert res is True, repr(res)
-##        else:
-##          assert res is None, repr(res)
+        if deliveryConfirmation:
+          assert res is True, repr(res)
+        else:
+          assert res is None, repr(res)
       else:
         g_log.info("Published %d messages of size=%d via=%s",
                    i+1, messageSize, implClass)
@@ -231,6 +230,7 @@ def runBlockingChannelPublishTest(implClassName,
 
     g_log.info("%s: closing connection", implClassName)
 
+  g_log.info("%s: DONE", implClassName)
 
 
 

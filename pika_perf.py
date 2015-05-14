@@ -177,6 +177,9 @@ def runBlockingPublishTest(implClassName,
   g_log.info("%s: closing connection", implClassName)
   connection.close()
 
+  g_log.info("%s: DONE", implClassName)
+
+
 
 def runSelectPublishTest(implClassName,
                          exchange,
@@ -236,6 +239,7 @@ def runSelectPublishTest(implClassName,
   else:
     assert Counter.numPublishConfirms == 0, Counter.numPublishConfirms
 
+  g_log.info("%s: DONE", implClassName)
 
 
 def getPikaConnectionParameters():
