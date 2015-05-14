@@ -154,20 +154,37 @@ def runBlockingSocketTransportPublishTest(implClassName,
 
   payload = "a" * messageSize
 
-  class Events(object):
+  class State(object):
     publishConfirm = False
+    channelClosed = False
+    connectionClosed = False
+    connection = None
 
-  conn = RabbitConnection(transport="socket", **getConnectionParameters())
+  def onConnectionClosed():
+    State.connectionClosed = True
+    g_log.info("%s: connection closed; close_info=%s", implClassName,
+               State.connection.close_info if State.connection else None)
+
+
+  conn = RabbitConnection(transport="socket", close_cb=onConnectionClosed,
+                          **getConnectionParameters())
   g_log.info("%s: opened connection", implClassName)
 
+
+  def onChannelClosed(ch):
+    State.channelClosed = True
+    g_log.info("%s: channel closed; close_info=%s",
+               implClassName, ch.close_info)
+
   channel = conn.channel()
+  channel.add_close_listener(onChannelClosed)
   g_log.info("%s: opened channel", implClassName)
 
   if deliveryConfirmation:
     channel.confirm.select()
 
     def ack(mid):
-      Events.publishConfirm = True
+      State.publishConfirm = True
 
     def nack(mid):
       g_log.error("Got Nack from broker")
@@ -183,24 +200,29 @@ def runBlockingSocketTransportPublishTest(implClassName,
   # Publish
 
   for i in xrange(numMessages):
+    assert not State.publishConfirm
     message = Message(payload)
     channel.basic.publish(message, exchange=exchange, routing_key=ROUTING_KEY)
     if deliveryConfirmation:
-      while not Events.publishConfirm:
+      while not State.publishConfirm:
         conn.read_frames()
       else:
-        Events.publishConfirm = False
+        State.publishConfirm = False
   else:
     g_log.info("Published %d messages of size=%d via=%s",
                i+1, messageSize, implClass)
 
   g_log.info("%s: closing channel", implClassName)
   channel.close()
+  while not State.channelClosed:
+    conn.read_frames()
 
   g_log.info("%s: closing connection", implClassName)
   conn.close()
+  while not State.connectionClosed:
+    conn.read_frames()
 
-  assert not Events.publishConfirm
+  assert not State.publishConfirm
 
   g_log.info("%s: DONE", implClassName)
 
