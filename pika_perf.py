@@ -7,11 +7,12 @@ import sys
 
 import pika
 
-g_log = logging.getLogger("set_rabbitmq_login")
+g_log = logging.getLogger("pika_perf")
 
 
 ROUTING_KEY = "test"
 
+#logging.getLogger("pika").setLevel(logging.DEBUG)
 
 def main():
   logging.basicConfig(
@@ -29,92 +30,14 @@ def main():
     "\tpublish - publish messages using one of several pika connection classes")
 
   topParser = OptionParser(topHelpString)
- 
+
   if len(sys.argv) < 2:
     topParser.error("Missing COMMAND")
 
   command = sys.argv[1]
-  
+
   if command == "publish":
-    helpString = (
-      "\n"
-      "\t%prog publish OPTIONS\n"
-      "\t%prog publish --help\n"
-      "\t%prog --help\n"
-      "\n"
-      "Publishes the given number of messages of the\n"
-      "given size to the given exchange using the specified\n"
-      "pika connection class")  
-    parser = OptionParser(helpString)
-
-    implChoices = ["BlockingConnection",
-                   "SynchronousConnection",
-                   "SelectConnection"]
-    parser.add_option(
-        "--impl",
-        action="store",
-        type="choice",
-        dest="impl",
-        choices=implChoices,
-        help=("Selection of pika connection class "
-              "[REQUIRED; must be one of: %s]" % ", ".join(implChoices)))
-
-    parser.add_option(
-        "--exg",
-        action="store",
-        type="string",
-        dest="exchange",
-        help="Destination exchange [REQUIRED]")
-
-    parser.add_option(
-        "--msgs",
-        action="store",
-        type="int",
-        dest="numMessages",
-        default=1000,
-        help="Number of messages to send [default: %default]")
-
-    parser.add_option(
-        "--size",
-        action="store",
-        type="int",
-        dest="messageSize",
-        default=1024,
-        help="Size of each message in bytes [default: %default]")
-
-    parser.add_option(
-        "--delivery-confirmation",
-        action="store_true",
-        dest="deliveryConfirmation",
-        default=False,
-        help="Publish in delivery confirmation mode [defaults to OFF]")
-
-    options, positionalArgs = parser.parse_args(sys.argv[2:])
-
-    if positionalArgs:
-      raise parser.error("Unexpected to have any positional args, but got: %r"
-                         % positionalArgs)
-
-    if not options.impl:
-      parser.error("--impl is required")
-
-    if not options.exchange:
-      parser.error("--exg must be specified with a valid destination exchange name")
-
-    if options.impl in ["BlockingConnection", "SynchronousConnection"]:
-      runBlockingPublishTest(implClassName=options.impl,
-                             exchange=options.exchange,
-                             numMessages=options.numMessages,
-                             messageSize=options.messageSize,
-                             deliveryConfirmation=options.deliveryConfirmation)
-    else:
-      assert options.impl == "SelectConnection", options.impl
-      
-      runSelectPublishTest(implClassName=options.impl,
-                           exchange=options.exchange,
-                           numMessages=options.numMessages,
-                           messageSize=options.messageSize,
-                           deliveryConfirmation=options.deliveryConfirmation)
+    _handlePublishTest(sys.argv[2:])
   else:
     try:
       topParser.parse_args()
@@ -124,19 +47,93 @@ def main():
       topParser.error("Unknown command=%s" % command)
 
 
-def getPikaConnectionParameters():
+
+def _handlePublishTest(args):
+  """ Parse args and invoke the publish test using the requested connection
+  class
+
+  :param args: sequence of commandline args passed after the "publish" keyword
   """
-  retval: instance of pika.ConnectionParameters for the AMQP broker (RabbitMQ
-  most likely)
-  """
-  host = "localhost"
+  helpString = (
+    "\n"
+    "\t%%prog publish OPTIONS\n"
+    "\t%%prog publish --help\n"
+    "\t%%prog --help\n"
+    "\n"
+    "Publishes the given number of messages of the\n"
+    "given size to the given exchange and routing_key=%s using the specified\n"
+    "pika connection class") % (ROUTING_KEY,)
+  parser = OptionParser(helpString)
 
-  vhost = "/"
+  implChoices = ["BlockingConnection",
+                 "SynchronousConnection",
+                 "SelectConnection"]
+  parser.add_option(
+      "--impl",
+      action="store",
+      type="choice",
+      dest="impl",
+      choices=implChoices,
+      help=("Selection of pika connection class "
+            "[REQUIRED; must be one of: %s]" % ", ".join(implChoices)))
 
-  credentials = pika.PlainCredentials("guest", "guest")
+  parser.add_option(
+      "--exg",
+      action="store",
+      type="string",
+      dest="exchange",
+      help="Destination exchange [REQUIRED]")
 
-  return pika.ConnectionParameters(host=host, virtual_host=vhost,
-                                   credentials=credentials)
+  parser.add_option(
+      "--msgs",
+      action="store",
+      type="int",
+      dest="numMessages",
+      default=1000,
+      help="Number of messages to send [default: %default]")
+
+  parser.add_option(
+      "--size",
+      action="store",
+      type="int",
+      dest="messageSize",
+      default=1024,
+      help="Size of each message in bytes [default: %default]")
+
+  parser.add_option(
+      "--delivery-confirmation",
+      action="store_true",
+      dest="deliveryConfirmation",
+      default=False,
+      help="Publish in delivery confirmation mode [defaults to OFF]")
+
+  options, positionalArgs = parser.parse_args(sys.argv[2:])
+
+  if positionalArgs:
+    raise parser.error("Unexpected to have any positional args, but got: %r"
+                       % positionalArgs)
+
+  if not options.impl:
+    parser.error("--impl is required")
+
+  if options.exchange is None:
+    parser.error("--exg must be specified with a valid destination exchange name")
+
+  if options.impl in ["BlockingConnection", "SynchronousConnection"]:
+    runBlockingPublishTest(implClassName=options.impl,
+                           exchange=options.exchange,
+                           numMessages=options.numMessages,
+                           messageSize=options.messageSize,
+                           deliveryConfirmation=options.deliveryConfirmation)
+  else:
+    assert options.impl == "SelectConnection", options.impl
+
+    runSelectPublishTest(implClassName=options.impl,
+                         exchange=options.exchange,
+                         numMessages=options.numMessages,
+                         messageSize=options.messageSize,
+                         deliveryConfirmation=options.deliveryConfirmation)
+
 
 
 
@@ -153,7 +150,7 @@ def runBlockingPublishTest(implClassName,
 
   connection = connectionClass(getPikaConnectionParameters())
   g_log.info("%s: opened connection", implClassName)
-  
+
   message = "a" * messageSize
 
   channel = connection.channel()
@@ -162,7 +159,7 @@ def runBlockingPublishTest(implClassName,
   if deliveryConfirmation:
     channel.confirm_delivery()
     g_log.info("%s: enabled message delivery confirmation", implClassName)
-  
+
   for i in xrange(numMessages):
     channel.basic_publish(exchange=exchange, routing_key=ROUTING_KEY,
                           body=message)
@@ -215,7 +212,7 @@ def runSelectPublishTest(implClassName,
 
   def onConnectionClosed(connection, reasonCode, reasonText):
     g_log.info("Select connection closed (%s): %s", reasonCode, reasonText)
-  
+
 
   connectionClass = getattr(pika, implClassName)
 
@@ -223,8 +220,25 @@ def runSelectPublishTest(implClassName,
     getPikaConnectionParameters(),
     on_open_callback=onConnectionOpen,
     on_close_callback=onConnectionClosed)
-  
+
   connection.ioloop.start()
+
+
+
+def getPikaConnectionParameters():
+  """
+  :returns: instance of pika.ConnectionParameters for the AMQP broker (RabbitMQ
+  most likely)
+  """
+  host = "localhost"
+
+  vhost = "/"
+
+  credentials = pika.PlainCredentials("guest", "guest")
+
+  return pika.ConnectionParameters(host=host, virtual_host=vhost,
+                                   credentials=credentials)
+
 
 
 if __name__ == '__main__':
