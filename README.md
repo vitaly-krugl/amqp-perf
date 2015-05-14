@@ -1,9 +1,10 @@
 # amqp-perf
 Performance tests for amqp clients:
-* `pika_perf.py`
-* `rabbitpy_perf.py`
-* `haigha_perf.py`
-* `puka_perf.py`
+
+- `pika_perf.py`
+- `rabbitpy_perf.py`
+- `haigha_perf.py`
+- `puka_perf.py`
 
 1. Create an exchange and bind a queue to it. If creating a topic or direct exchange, note that the test publishes to the routing_key="test", so bind with that routing key. The test accepts the exchange name as a command-line option.
 2. Invoke pika_perf.py with the options described by `python pika_perf.py --help`. 
