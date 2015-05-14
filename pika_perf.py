@@ -161,8 +161,13 @@ def runBlockingPublishTest(implClassName,
     g_log.info("%s: enabled message delivery confirmation", implClassName)
 
   for i in xrange(numMessages):
-    channel.basic_publish(exchange=exchange, routing_key=ROUTING_KEY,
-                          body=message)
+    res = channel.basic_publish(exchange=exchange, routing_key=ROUTING_KEY,
+                                body=message)
+    if deliveryConfirmation:
+      assert res is True, repr(res)
+    else:
+      assert res is None, repr(res)
+
   else:
     g_log.info("Published %d messages of size=%d via=%s",
                i+1, messageSize, connectionClass)
@@ -184,9 +189,12 @@ def runSelectPublishTest(implClassName,
 
   message = "a" * messageSize
 
+  class Counter(object):
+    numPublishConfirms = 0
+
   def onDeliveryConfirmation(*args):
     # Got Basic.Ack or Basic.Nack
-    pass
+    Counter.numPublishConfirms += 1
 
   def onChannelOpen(channel):
     if deliveryConfirmation:
@@ -222,6 +230,11 @@ def runSelectPublishTest(implClassName,
     on_close_callback=onConnectionClosed)
 
   connection.ioloop.start()
+
+  if deliveryConfirmation:
+    assert Counter.numPublishConfirms == numMessages, Counter.numPublishConfirms
+  else:
+    assert Counter.numPublishConfirms == 0, Counter.numPublishConfirms
 
 
 

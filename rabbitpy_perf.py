@@ -209,7 +209,7 @@ def runBlockingChannelPublishTest(implClassName,
       g_log.info("%s: wrapped channel", implClassName)
 
       if deliveryConfirmation:
-        chan.enable_publisher_confirms()
+        channel.enable_publisher_confirms()
         g_log.info("%s: enabled message delivery confirmation", implClassName)
 
 
@@ -218,7 +218,11 @@ def runBlockingChannelPublishTest(implClassName,
 
       for i in xrange(numMessages):
         message = rabbitpy.Message(channel, payload)
-        message.publish(exchange=exchange, routing_key=ROUTING_KEY)
+        res = message.publish(exchange=exchange, routing_key=ROUTING_KEY)
+##        if deliveryConfirmation:
+##          assert res is True, repr(res)
+##        else:
+##          assert res is None, repr(res)
       else:
         g_log.info("Published %d messages of size=%d via=%s",
                    i+1, messageSize, implClass)
