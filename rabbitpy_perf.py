@@ -142,7 +142,6 @@ def _handlePublishTest(args):
 
 
 
-
 def runBlockingAMQPPublishTest(implClassName,
                                exchange,
                                numMessages,
@@ -175,7 +174,7 @@ def runBlockingAMQPPublishTest(implClassName,
 
       for i in xrange(numMessages):
         amqp.basic_publish(exchange=exchange, routing_key=ROUTING_KEY,
-                           body=message)
+                           immediate=False, mandatory=False, body=message)
       else:
         g_log.info("Published %d messages of size=%d via=%s",
                    i+1, messageSize, implClass)
@@ -186,6 +185,7 @@ def runBlockingAMQPPublishTest(implClassName,
 
 
   g_log.info("%s: DONE", implClassName)
+
 
 
 def runBlockingChannelPublishTest(implClassName,
@@ -217,7 +217,8 @@ def runBlockingChannelPublishTest(implClassName,
 
       for i in xrange(numMessages):
         message = rabbitpy.Message(channel, payload)
-        res = message.publish(exchange=exchange, routing_key=ROUTING_KEY)
+        res = message.publish(exchange=exchange, routing_key=ROUTING_KEY,
+                              immediate=False, mandatory=False)
         if deliveryConfirmation:
           assert res is True, repr(res)
         else:

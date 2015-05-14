@@ -202,7 +202,8 @@ def runBlockingSocketTransportPublishTest(implClassName,
   for i in xrange(numMessages):
     assert not State.publishConfirm
     message = Message(payload)
-    channel.basic.publish(message, exchange=exchange, routing_key=ROUTING_KEY)
+    channel.basic.publish(message, exchange=exchange, routing_key=ROUTING_KEY,
+                          immediate=False, mandatory=False)
     if deliveryConfirmation:
       while not State.publishConfirm:
         conn.read_frames()

@@ -162,7 +162,7 @@ def runBlockingPublishTest(implClassName,
 
   for i in xrange(numMessages):
     res = channel.basic_publish(exchange=exchange, routing_key=ROUTING_KEY,
-                                body=message)
+                                immediate=False, mandatory=False, body=message)
     if deliveryConfirmation:
       assert res is True, repr(res)
     else:
@@ -207,7 +207,7 @@ def runSelectPublishTest(implClassName,
     g_log.info("Select publishing...")
     for i in xrange(numMessages):
       channel.basic_publish(exchange=exchange, routing_key=ROUTING_KEY,
-                            body=message)
+                            immediate=False, mandatory=False, body=message)
     else:
       g_log.info("Published %d messages of size=%d via=%s",
                  i+1, messageSize, connectionClass)
