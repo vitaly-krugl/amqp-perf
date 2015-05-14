@@ -68,7 +68,8 @@ def _handlePublishTest(args):
   parser = OptionParser(helpString)
 
   implChoices = [
-    "AMQP", # The less opinionated interface
+    "AMQP",    # The less opinionated interface
+    "Channel", # The opinionated interface
   ]
 
   parser.add_option(
@@ -122,29 +123,37 @@ def _handlePublishTest(args):
   if options.exchange is None:
     parser.error("--exg must be specified with a valid destination exchange name")
 
-  if options.impl in ["AMQP"]:
-    runBlockingPublishTest(implClassName=options.impl,
-                           exchange=options.exchange,
-                           numMessages=options.numMessages,
-                           messageSize=options.messageSize,
-                           deliveryConfirmation=options.deliveryConfirmation)
+  if options.impl == "AMQP":
+    runBlockingAMQPPublishTest(
+      implClassName=options.impl,
+      exchange=options.exchange,
+      numMessages=options.numMessages,
+      messageSize=options.messageSize,
+      deliveryConfirmation=options.deliveryConfirmation)
+  elif options.impl == "Channel":
+    runBlockingChannelPublishTest(
+      implClassName=options.impl,
+      exchange=options.exchange,
+      numMessages=options.numMessages,
+      messageSize=options.messageSize,
+      deliveryConfirmation=options.deliveryConfirmation)
   else:
-    assert False, "unexpected impl=%r" % (options.impl,)
+    parser.error("unexpected impl=%r" % (options.impl,))
 
 
 
 
-def runBlockingPublishTest(implClassName,
-                           exchange,
-                           numMessages,
-                           messageSize,
-                           deliveryConfirmation):
-  g_log.info("runBlockingPublishTest: impl=%s; exchange=%s; numMessages=%d; "
-             "messageSize=%s; deliveryConfirmation=%s", implClassName, exchange,
-             numMessages, messageSize, deliveryConfirmation)
+def runBlockingAMQPPublishTest(implClassName,
+                               exchange,
+                               numMessages,
+                               messageSize,
+                               deliveryConfirmation):
+  g_log.info(
+    "runBlockingAMQPPublishTest: impl=%s; exchange=%s; numMessages=%d; "
+    "messageSize=%s; deliveryConfirmation=%s", implClassName, exchange,
+    numMessages, messageSize, deliveryConfirmation)
 
   implClass = getattr(rabbitpy, implClassName)
-
   assert implClass is rabbitpy.AMQP, implClass
 
   with rabbitpy.Connection(getConnectionParameters()) as conn:
@@ -169,7 +178,50 @@ def runBlockingPublishTest(implClassName,
                            body=message)
       else:
         g_log.info("Published %d messages of size=%d via=%s",
-                   i+1, messageSize, connectionClass)
+                   i+1, messageSize, implClass)
+
+      g_log.info("%s: closing channel", implClassName)
+
+    g_log.info("%s: closing connection", implClassName)
+
+
+
+
+def runBlockingChannelPublishTest(implClassName,
+                                  exchange,
+                                  numMessages,
+                                  messageSize,
+                                  deliveryConfirmation):
+  g_log.info(
+    "runBlockingChannelPublishTest: impl=%s; exchange=%s; numMessages=%d; "
+    "messageSize=%s; deliveryConfirmation=%s", implClassName, exchange,
+    numMessages, messageSize, deliveryConfirmation)
+
+  implClass = getattr(rabbitpy, implClassName)
+  assert implClass is rabbitpy.Channel, implClass
+
+  with rabbitpy.Connection(getConnectionParameters()) as conn:
+    g_log.info("%s: opened connection", implClassName)
+
+    with conn.channel() as channel:
+      g_log.info("%s: opened channel", implClassName)
+
+      g_log.info("%s: wrapped channel", implClassName)
+
+      if deliveryConfirmation:
+        chan.enable_publisher_confirms()
+        g_log.info("%s: enabled message delivery confirmation", implClassName)
+
+
+      # Publish
+      payload = "a" * messageSize
+
+      for i in xrange(numMessages):
+        message = rabbitpy.Message(channel, payload)
+        message.publish(exchange=exchange, routing_key=ROUTING_KEY)
+      else:
+        g_log.info("Published %d messages of size=%d via=%s",
+                   i+1, messageSize, implClass)
 
       g_log.info("%s: closing channel", implClassName)
 
