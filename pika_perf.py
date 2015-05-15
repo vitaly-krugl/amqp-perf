@@ -38,6 +38,8 @@ def main():
 
   if command == "publish":
     _handlePublishTest(sys.argv[2:])
+  elif not command.startswith("-"):
+    topParser.error("Unexpected action: %s" % (command,))
   else:
     try:
       topParser.parse_args()
@@ -101,7 +103,7 @@ def _handlePublishTest(args):
       help="Size of each message in bytes [default: %default]")
 
   parser.add_option(
-      "--delivery-confirmation",
+      "--pubacks",
       action="store_true",
       dest="deliveryConfirmation",
       default=False,
