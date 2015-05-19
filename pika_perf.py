@@ -196,32 +196,63 @@ def runSelectPublishTest(implClassName,
 
   class Counter(object):
     numPublishConfirms = 0
+    lastConfirmedDeliveryTag = 0
 
-  def onDeliveryConfirmation(*args):
+
+  def onDeliveryConfirmation(ch, methodFrame):
     # Got Basic.Ack or Basic.Nack
-    Counter.numPublishConfirms += 1
+    if isinstance(methodFrame.method, pika.spec.Basic.Ack):
+      Counter.numPublishConfirms += 1
+      Counter.lastConfirmedDeliveryTag = methodFrame.method.delivery_tag
 
-  def onChannelOpen(channel):
+      if Counter.lastConfirmedDeliveryTag == numMessages:
+        g_log.info("All messages confirmed, closing Select channel...")
+        ch.close()
+
+    else:
+      msg = "Failed: message was not Ack'ed; got instead %r" % (methodFrame,)
+      g_log.error(msg)
+      raise Exception(msg)
+
+
+  def onMessageReturn(*args):
+    msg = "Failed: message was returned: %s" % (args,)
+    g_log.error(msg)
+    raise Exception(msg)
+
+
+  def onChannelOpen(ch):
     if deliveryConfirmation:
-      channel.confirm_delivery(callback=onDeliveryConfirmation)
+      ch.confirm_delivery(
+        callback=lambda *args: onDeliveryConfirmation(ch, *args))
       g_log.info("%s: enabled message delivery confirmation", implClassName)
 
     g_log.info("Select publishing...")
     for i in xrange(numMessages):
-      channel.basic_publish(exchange=exchange, routing_key=ROUTING_KEY,
-                            immediate=False, mandatory=False, body=message)
+      ch.basic_publish(exchange=exchange, routing_key=ROUTING_KEY,
+                       immediate=False, mandatory=False, body=message)
     else:
       g_log.info("Published %d messages of size=%d via=%s",
                  i+1, messageSize, connectionClass)
-    channel.close()
-    channel.connection.close()
-    connection.ioloop.start()
+
+    if not deliveryConfirmation:
+      g_log.info("Closing Select channel...")
+      ch.close()
+
+
+  def onChannelClosed(ch, reasonCode, reasonText):
+    g_log.info("Select channel closed (%s): %s", reasonCode, reasonText)
+    g_log.info("Closing Select connection...")
+    ch.connection.close()
 
 
   def onConnectionOpen(connection):
     g_log.info("Select opening channel...")
 
-    connection.channel(on_open_callback=onChannelOpen)
+    ch = connection.channel(on_open_callback=onChannelOpen)
+    ch.add_on_close_callback(onChannelClosed)
+    ch.add_on_return_callback(onMessageReturn)
+
 
   def onConnectionClosed(connection, reasonCode, reasonText):
     g_log.info("Select connection closed (%s): %s", reasonCode, reasonText)
@@ -237,7 +268,9 @@ def runSelectPublishTest(implClassName,
   connection.ioloop.start()
 
   if deliveryConfirmation:
-    assert Counter.numPublishConfirms == numMessages, Counter.numPublishConfirms
+    assert Counter.lastConfirmedDeliveryTag == numMessages, (
+      "lastConfirmedDeliveryTag=%s, numPublishConfirms=%s" % (
+        Counter.lastConfirmedDeliveryTag, Counter.numPublishConfirms))
   else:
     assert Counter.numPublishConfirms == 0, Counter.numPublishConfirms
 
