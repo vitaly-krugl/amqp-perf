@@ -4,6 +4,7 @@
 import collections
 import logging
 from optparse import OptionParser
+import socket
 import sys
 
 from haigha.connections.rabbit_connection import RabbitConnection
@@ -175,8 +176,11 @@ def runBlockingSocketPublishTest(implClassName,
     assert State.closing, "unexpected connection-close"
 
 
-  conn = RabbitConnection(transport="socket", close_cb=onConnectionClosed,
-                          **getConnectionParameters())
+  conn = RabbitConnection(
+    transport="socket",
+    sock_opts={(socket.IPPROTO_TCP, socket.TCP_NODELAY) : 1},
+    close_cb=onConnectionClosed,
+    **getConnectionParameters())
   g_log.info("%s: opened connection", implClassName)
 
 
@@ -361,8 +365,11 @@ def runBlockingSocketAltPubConsumeTest(implClassName,
     assert State.closing, "unexpected onnection-close"
 
 
-  conn = RabbitConnection(transport="socket", close_cb=onConnectionClosed,
-                          **getConnectionParameters())
+  conn = RabbitConnection(
+    transport="socket",
+    sock_opts={(socket.IPPROTO_TCP, socket.TCP_NODELAY) : 1},
+    close_cb=onConnectionClosed,
+    **getConnectionParameters())
   g_log.info("%s: opened connection", implClassName)
 
 
